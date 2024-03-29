@@ -23,9 +23,9 @@ class __DB:
 
 class DictDB(__DB):
 
-	def __init__(self, filename):
+	def __init__(self, filename,fields):
 		super().__init__(filename)
-		self.FIELDS = ('id', 'word', 'sw', 'phonetic', 'definition', 'translation', 'pos', 'collins', 'oxford', 'tag', 'bnc', 'frq', 'exchange', 'detail', 'audio')
+		self.FIELDS = fields
 
 	def query_json(self,text,toText=False):
 		query = json.loads(text)
@@ -62,9 +62,7 @@ class DictDB(__DB):
 class StarDict(DictDB):
 
 	def __init__(self, filename):
-		super().__init__(filename)
-		self.DEFAULT_ORDER = 'oxford desc, collins desc, word, frq, bnc'
-		self.DEFAULT_CONDITION = 'and (oxford>0 or collins>0 or (frq>0 and bnc>0))'
+		super().__init__(filename,('id', 'word', 'sw', 'phonetic', 'definition', 'translation', 'pos', 'collins', 'oxford', 'tag', 'bnc', 'frq', 'exchange', 'detail', 'audio'))
 
 	def get_word(self,keyword,select='*'): return self.query_easy(['word = ?',keyword],select=select)
 
