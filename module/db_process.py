@@ -1,9 +1,10 @@
 import sqlite3, json, re
 
-class __DB:
+class DB:
 
-	def __init__(self,filename):
+	def __init__(self,filename,fields):
 		self.__dbname = filename
+		self.FIELDS = fields
 		self.__open()
 
 	def __del__(self): self.close()
@@ -20,12 +21,6 @@ class __DB:
 		return cursor.fetchall()
 
 	def exec_more(self,sql): self.__dbobj.cursor().executescript(sql)
-
-class DictDB(__DB):
-
-	def __init__(self, filename,fields):
-		super().__init__(filename)
-		self.FIELDS = fields
 
 	def query_json(self,text,toText=False):
 		query = json.loads(text)
@@ -59,17 +54,20 @@ class DictDB(__DB):
 		query['data'] = data[1:]
 		return self.query_json(json.dumps(query),toText=toText,)
 
-class StarDict(DictDB):
+class StarDict(DB):
 
 	def __init__(self, filename):
 		super().__init__(filename,('id', 'word', 'sw', 'phonetic', 'definition', 'translation', 'pos', 'collins', 'oxford', 'tag', 'bnc', 'frq', 'exchange', 'detail', 'audio'))
 
 	def get_word(self,keyword,select='*'): return self.query_easy(['word = ?',keyword],select=select)
 
-	def match_word(self,keyword,prefix='',suffix='',condition=None,order=None,limit=None,offset=None,select='*'):
-		sql = 'sw like ? '
+	def match_word(self,keyword,cn=False,prefix='',suffix='',condition=None,order=None,limit=None,offset=None,select='*'):
+		if cn: sql = 'translation like ? '
+		else: sql = 'sw like ? '
 		sql = self.__add_sql(sql,condition=condition,order=order,limit=limit,offset=offset)
-		return self.query_easy([sql,prefix+self.__strip_word(keyword)+suffix],select=select)
+		if cn: data = '%'+keyword+'%'
+		else: data = prefix+self.strip_word(keyword)+suffix
+		return self.query_easy([sql,data],select=select)
 
 	def match_tags(self,tags,connective='and',condition=None,order=None,limit=None,offset=None,select='*'):
 		tmp = tags.strip().split(' ')
@@ -99,4 +97,6 @@ class StarDict(DictDB):
 		if offset: sql+='offset '+str(offset)+' '
 		return sql
 
-	def __strip_word(self,word): return (''.join([ n for n in word if n.isalnum() ])).lower()
+	def strip_word(self,word):
+		#return (''.join([ n for n in word if n.isalnum() ])).lower()
+		return ''.join(re.findall('[a-z|A-Z|0-9]+',word))
