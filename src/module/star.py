@@ -1,6 +1,8 @@
-from module.db_process import StarDict
-import os
+from base.DB import DB as db_class
+import base.file as file
+import re
 
+FIELDS = ('id', 'word', 'sw', 'phonetic', 'definition', 'translation', 'pos', 'collins', 'oxford', 'tag', 'bnc', 'frq', 'exchange', 'detail', 'audio')
 SEARCH_ORDER = 'oxford desc, collins desc, word, frq, bnc'
 TAG_NAME = {
 	'ielts':'雅思',
@@ -34,15 +36,17 @@ EXCHANGE_NAME = {
 	'p':'过去式',
 }
 
-def open_db(db_name:str) -> StarDict:
-	if not os.path.exists(db_name): return
-	return StarDict(db_name)
 
-def search_result(db,keyword,cn=False,limit=20,offset=0):
-	if len(keyword)<1: return []
-	if len(db.strip_word(keyword))<1: cn = True
-	print(db.strip_word(keyword))
-	result = db.match_word(keyword,cn=cn,suffix='%',limit=limit,offset=offset,order=SEARCH_ORDER,select='word,translation')
+def open(filename:str) -> db_class:
+	global DB
+	if not file.exists(filename): return
+	DB = db_class(filename=filename,table='stardict',fields=FIELDS)
+	return DB
+
+def search_result(keyword,full=False,limit=20,offset=0):
+	if not DB or len(keyword)<1: return
+	if len(strip_word(keyword))<1: full = True
+	result = match_word(keyword,full=full,suffix='%',limit=limit,offset=offset,order=SEARCH_ORDER,select='word,translation')
 	if offset==0:
 		for i in range(len(result)):
 			if result[i]['word']==keyword:
@@ -51,18 +55,19 @@ def search_result(db,keyword,cn=False,limit=20,offset=0):
 	return result
 
 def process_search_result(result):
+	if not result: return
 	data = []
 	for i in range(len(result)): data.append(result[i]['word']+'\n'+result[i]['translation'])
 	return data
 
-def word_detail(db,keyword):
-	word = db.get_word(keyword)
+def word_detail(keyword):
+	if not DB or len(keyword)<1: return
+	word = DB.query_easy(['word = ?',keyword])
 	if len(word)!=1: return
 	return word[0]
 
 def process_word_detail(word):
-	if not word: return []
-	print(word)
+	if not word: return
 	data = []
 	m = word['word']
 	if len(word['phonetic'])>0: m+='\n('+word['phonetic']+')'
@@ -101,14 +106,31 @@ def process_word_detail(word):
 		data.append(m)
 	return data
 
+def match_word(keyword,full=False,prefix='',suffix='',condition=None,order=None,limit=None,offset=None,select='*'):
+	if full: sql = 'translation like ? '
+	else: sql = 'sw like ? '
+	if full: data = '%'+keyword+'%'
+	else: data = prefix+strip_word(keyword)+suffix
+	return DB.query_easy([sql,data],select=select,condition=condition,order=order,limit=limit,offset=offset)
 
-def add_items(list,items,id=None):
-	if len(items)<1: return
-	if not id: id = list.GetCount()
-	list.InsertItems(items,id)
+def match_tags(tags,connective='and',condition=None,order=None,limit=None,offset=None,select='*'):
+	tmp = tags.strip().split(' ')
+	data = []
+	for i in range(len(tmp)):
+		if tmp[i][:-1]=='collins':
+			data.append(int(tmp[i][-1]))
+			tmp[i]='collins'
+		elif tmp[i]=='oxford': data.append(1)
+		else:
+			data.append('%'+tmp[i]+'%')
+			tmp[i]='tag'
+		tmp[i]+=' like ? '
+	sql = (' '+connective+' ').join(tmp)
+	return DB.query_easy([sql]+data,select=select,condition=condition,order=order,limit=limit,offset=offset)
 
-def show_list(list,focus=True,audio=True):
-	if list.GetSelection()==-1: list.SetSelection(0)
-	list.Show()
-	if focus: list.SetFocus()
-	if audio: pass
+
+
+
+def strip_word(word):
+	#return (''.join([ n for n in word if n.isalnum() ])).lower()
+	return ''.join(re.findall('[a-z|A-Z|0-9]+',word))
