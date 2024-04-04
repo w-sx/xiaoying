@@ -2,6 +2,8 @@ from base.DB import DB as db_class
 import base.file as file
 import re
 
+DB = None
+
 FIELDS = ('id', 'word', 'sw', 'phonetic', 'definition', 'translation', 'pos', 'collins', 'oxford', 'tag', 'bnc', 'frq', 'exchange', 'detail', 'audio')
 SEARCH_ORDER = 'oxford desc, collins desc, word, frq, bnc'
 TAG_NAME = {

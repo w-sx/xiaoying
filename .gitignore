@@ -1,0 +1,8 @@
+*__pycache__/
+*.spec
+version_file.txt
+build/
+dist/
+cache/
+*/test.py
+test/

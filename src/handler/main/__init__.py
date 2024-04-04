@@ -16,3 +16,4 @@ def init(obj:MainUi):
 	global ui
 	ui = obj
 	for i in INITS: i()
+	ui.Show()
