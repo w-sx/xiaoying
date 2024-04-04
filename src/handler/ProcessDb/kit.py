@@ -56,7 +56,7 @@ def btn_remove(list1,list2):
 	src = list2.GetItems()[list2.GetSelection()].split('\n')[2]
 	if alert('询问','确认删除 '+src+'？')!=wx.ID_YES: return
 	file.remove(src)
-	btn_get(list1,list2,v=False)
+	btn_get(list1,list2,ve=False)
 	add_items(list1,['删除 '+src],jump=True,clear=False)
 
 def btn_get(list1,list2,lo=True,re=True,ve=True):
